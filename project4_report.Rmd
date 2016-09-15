@@ -1,0 +1,77 @@
+---
+title: "Project4: Smartcab"
+author: "Lu Xing"
+date: "July 29, 2016"
+output: pdf_document
+---
+
+_**QUESTION:** Observe what you see with the agent's behavior as it takes random actions. Does the smartcab eventually make it to the destination? Are there any other interesting observations to note?_
+
+**ANSWER:** The smartcab will get to the destination by chance. Because the smartcab take actions randomly, it may survive collision with other cars and by a small chance will reach the destination point. The deadline will keep decreasing even it becomes negative.
+
+_**QUESTION:** What states have you identified that are appropriate for modeling the smartcab and environment? Why do you believe each of these states to be appropriate for this problem?_
+
+**ANSWER:** I have identified self.next\_waypoint and inputs for the states. The 'next_waypoint' is the direction given by the planner based on the distance between the current location and the destination. The 'inputs' include the traffic light, left traffic and right traffic. 
+'next\_waypoint' is appropriate for this problem because it tells the agent which direction to go in order to arrive in the shortest time. When combining 'next_waypoint' with action, the qtable will update so that if the two are consistent, there is a high positive reward, otherwise, the reward is negative for punishing. 
+
+'inputs' is appropriate for this problem because it teaches the agent traffic rules. When the agent’s action breaks the rules, it cannot move and it receives negative reward. 
+
+'deadline' is not appropriate as state. If 'deadline' is included then the total number of states will increase dramatically (multiplied by 35). So every time the smart agent is at the intersection it has to search through the huge Q table to find the corresponding action it can take. Then there will be a delay in time. Also, if 'deadline' is included, the agent will tend to break traffic rules in order to get to the destination in time. However, this is not a preferred scenario because this will cause traffic accidents. 
+
+So putting ‘self.next_waypoint’ and ‘inputs’ as state, the agent will be trained so that it can perform the action which is legal and is the most direct way.
+
+_**OPTIONAL:** How many states in total exist for the smartcab in this environment? Does this number seem reasonable given that the goal of Q-Learning is to learn and make informed decisions about each state? Why or why not?_
+
+**ANSWER:** The state is (next\_waypoint, traffic light, left traffic, right traffic). There are 3 possible next_waypoint: 'left', 'right', 'forward'. There are 2 possible lights: 'green', 'red'. The value for left and right traffic is ‘None’ most of time. They can have 4 different values each: ‘None’, ‘left’, ‘right’, ‘forward’. So the overall number of states is about $3\times2\times4\times4$ = 96. I think it is reasonable because if the number is too large, the agent is hard to learn from the states and if the number is too small, the agent cannot distinguish between different states.
+
+_**QUESTION:** What changes do you notice in the agent's behavior when compared to the basic driving agent when random actions were always taken? Why is this behavior occurring?_
+
+**ANSWER:** The smart agent reaches the destination much more often than the random agent. Also, the smart agent breaks traffic rules much less than the random agent. This is because the smart agent learns from its experience. There is a dictionary that stores all the possible states and actions and the smart agent will fall in the same state again and again. Different reward is given based on the action the smart agent takes. Correct action means positive reward and wrong action means negative reward. Then the next time the smart agent meets the same state, it can choose the action with the highest reward. Thus it learns from the past. However, the random agent only chooses action randomly, so it may reach the destination and make legal action by chance but not always.
+
+_**QUESTION:** Report the different values for the parameters tuned in your basic implementation of Q-Learning. For which set of parameters does the agent perform best? How well does the final driving agent perform?_
+
+**ANSWER:** I will compare different combinations based on the result of the first 100 trials. The following metrics will be used:
+
+* TimePercentage (Ave(t/deadline)): The average of total time divided by the orginal deadline $(deadline = self.compute\_dist(start, destination) \times 5)$
+* IllegalAct (Ave(illegal actions)): The average number of times that the agent breaks the traffic rules in 100 trials.
+* Success (successful trials/100): The number of times the agent reaches the destination in time.
+
+If alpha and epsilon are fixed:
+
+alpha| epsilon | gamma|TimePercentage|IllegalAct|Success
+---- | ---- |---- |---- |---- |---- |---- 
+1|1|0.6|0.562805555556| 7.7 |0.2
+1|0.6|0.6|0.548212403538 |4.01| 0.46
+1|0.1|0.6|0.420151753009| 0.59| 0.91
+0.6|1|0.6|0.618278564869| 7.36| 0.22
+0.1|1|0.6|0.570902255639| 7.37| 0.19
+0.6|0.6|0.6|0.498671637005 |4.08| 0.54
+0.1|0.1|0.6|0.492640854776| 0.63| 0.89
+
+If alpha and epsilon decay over time:
+
+alpha| epsilon | gamma|Decay Function(f)|TimePercentage|IllegalAct|Success
+---- | ---- |---- |---- |---- |---- |---- 
+1 $\times$ f|1 $\times$ f|1|1/t|0.422403246753| 0.16| 1.0
+1 $\times$ f|1 $\times$ f|1|1/ln(t)|0.440900564082| 0.23| 0.99
+1 $\times$ f|1 $\times$ f|1|$1/\sqrt{t}$|0.430718756986| 0.29| 0.71
+1 $\times$ f|1 $\times$ f|0.6|1/t|0.403083405483 |0.21| 1.0
+1 $\times$ f|1 $\times$ f|0.6|1/ln(t)|0.395917583574| 0.24| 0.96
+1 $\times$ f|1 $\times$ f|0.6|$1/\sqrt{t}$|0.42339178218| 0.19| 0.99
+1 $\times$ f|1 $\times$ f|0.1|1/t|0.385403238737| 0.21| 0.99
+1 $\times$ f|1 $\times$ f|0.1|1/ln(t)|0.476875211077| 2.8| 0.94
+1 $\times$ f|1 $\times$ f|0.1|$1/\sqrt{t}$|0.39995440413| 0.15| 0.97
+
+When the alpha and epsilon decay over time, the success ratio is significantly improved and the number of times that the agent breaks the traffic rules is significantly decreased. However tuning gamma does not show significantly differences in the results because it represents the importance of the future states and the future states are random. Taking all the results together, I think the optimal model is the one with decay function 1/t and gamma set to 0.1. The smart agent can reach the destination 99\% of the time and it can arrive in a relatively short amount of time. Also, it seldomly breaks the traffic rules.
+
+_**QUESTION:** Does your agent get close to finding an optimal policy, i.e. reach the destination in the minimum possible time, and not incur any penalties? How would you describe an optimal policy for this problem?_
+
+**ANSWER:** My smart agent breaks the traffic rules during its last ten trials out of the 100 trials. There are two circumstances: state1: ('forward', 'red', `None`, 'left', `None`) and action1: left; state2: ('forward', 'red', `None`, `None`, 'right') and action2: forward. Both of these circumstances are rare during the training because the left and right traffic at the intersection are `None` most of the time. Then the agent has not been trained well. My smart agent also chooses some indirect paths during its last ten trials out of the 100 trials. For example, in the 97th trial, the smart goes a loop:
+```{r, echo=FALSE}
+x = c(3,3,3,2,2,3,3,3,4)
+y = c(4,3,3,3,2,2,2,3,3)
+plot(x,y)
+lines(x,y)
+```
+
+So this policy is not an optimal one but a suboptimal one. Because an optimal policy for this problem would be a smart agent that could behave properly based on the traffic lights and the traffic from its left, right and oncoming direction. Given the coordinates of the destination, it can choose the shortest path. So the optimal agent never breaks traffic rules and gets to the destination as fast as possible. My agent breaks traffic rules at the beginning but as it learns from experience, it avoids making the same mistakes. However, it still makes mistakes when it is in a circumstance that it never sees before. The number of times it breaks traffic rules is about 5 at first, and decreases to 0 or 1 in later trials. Although my agent reaches the destination before deadline, the route it takes is not the shortest one. Sometimes it goes in a loop. I think punishments can be placed for agent arriving at the same point more than once in my model. The optimal policy will never have loops in the routes.
